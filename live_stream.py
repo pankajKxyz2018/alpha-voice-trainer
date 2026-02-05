@@ -1,71 +1,81 @@
+# ============================================
+# 🎤 REAL LIVE STREAM ENGINE (BROWSER MIC)
+# ============================================
+
+import streamlit as st
 import numpy as np
 from streamlit_webrtc import webrtc_streamer, AudioProcessorBase, WebRtcMode
-import streamlit as st
+import av
 
-# ---------------------------------------
-# REAL AUDIO PROCESSOR
-# ---------------------------------------
-class VoiceProcessor(AudioProcessorBase):
+
+# --------------------------------------------
+# AUDIO PROCESSOR (REAL VOICE ANALYSIS)
+# --------------------------------------------
+class AlphaAudioProcessor(AudioProcessorBase):
 
     def __init__(self):
-        self.alpha = 0
-        self.deep = 0
-        self.chest = 0
-        self.belly = 0
-        self.tone = 0
+        self.latest_result = None
 
-    def recv(self, frame):
+    def recv(self, frame: av.AudioFrame):
 
-        audio = frame.to_ndarray()
+        audio = frame.to_ndarray().flatten().astype(np.float32)
 
-        # Convert stereo → mono
-        if len(audio.shape) > 1:
-            audio = audio.mean(axis=1)
+        # 🔴 Ignore silence
+        if np.max(np.abs(audio)) < 0.01:
+            return frame
 
-        volume = np.abs(audio).mean()
+        # ------------------------------------
+        # SIMPLE REAL FREQUENCY ANALYSIS
+        # ------------------------------------
+        fft = np.abs(np.fft.rfft(audio))
+        freqs = np.fft.rfftfreq(len(audio), 1 / 48000)
 
-        # 👉 REAL SIGNAL ENERGY ANALYSIS
-        self.deep = int(min(100, volume * 2))
-        self.chest = int(min(100, volume * 1.8))
-        self.belly = int(min(100, volume * 1.5))
-        self.tone = int(min(100, volume * 1.2))
+        total_energy = np.sum(fft) + 1e-10
 
-        self.alpha = int(
-            self.deep * 0.4 +
-            self.chest * 0.3 +
-            self.belly * 0.2 +
-            self.tone * 0.1
+        sub_100 = np.sum(fft[(freqs >= 50) & (freqs <= 95)])
+        chest   = np.sum(fft[(freqs >= 150) & (freqs <= 350)])
+        gravel  = np.sum(fft[(freqs >= 3000) & (freqs <= 5500)])
+        belly   = np.sum(fft[(freqs >= 20) & (freqs <= 60)])
+
+        # HARD MODE SCALING (NOT LENIENT)
+        sub100_score = min(100, int((sub_100 / total_energy) * 2600))
+        chest_score  = min(100, int((chest / total_energy) * 1700))
+        gravel_score = min(100, int((gravel / total_energy) * 2800))
+        belly_score  = min(100, int((belly / total_energy) * 4200))
+
+        alpha_score = int(
+            sub100_score * 0.5 +
+            chest_score  * 0.3 +
+            gravel_score * 0.2
         )
+
+        self.latest_result = {
+            "sub100": sub100_score,
+            "chest": chest_score,
+            "gravel": gravel_score,
+            "belly": belly_score,
+            "alpha": alpha_score
+        }
 
         return frame
 
-# ---------------------------------------
-# START LIVE STREAM FUNCTION
-# ---------------------------------------
+
+# --------------------------------------------
+# STREAM STARTER FUNCTION
+# --------------------------------------------
 def start_live_stream():
 
     ctx = webrtc_streamer(
-        key="alpha-live",
+        key="alpha-live-stream",
         mode=WebRtcMode.SENDRECV,
-        audio_processor_factory=VoiceProcessor,
+        audio_processor_factory=AlphaAudioProcessor,
         media_stream_constraints={"audio": True, "video": False},
-        async_processing=True,
     )
 
     if ctx.audio_processor:
-        return {
-            "alpha": ctx.audio_processor.alpha,
-            "deep": ctx.audio_processor.deep,
-            "chest": ctx.audio_processor.chest,
-            "belly": ctx.audio_processor.belly,
-            "tone": ctx.audio_processor.tone,
-        }
+        return ctx.audio_processor.latest_result
 
-    return {
-        "alpha":0,
-        "deep":0,
-        "chest":0,
-        "belly":0,
-        "tone":0,
-    }
+    return None
+
+
 
