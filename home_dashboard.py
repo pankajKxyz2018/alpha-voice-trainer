@@ -6,33 +6,21 @@ import pandas as pd
 from datetime import datetime
 from voice_engine import analyze_mic_input
 
-# --- 1. LOAD SENTENCES ---
+# -------------------------
+# LOAD SENTENCES
+# -------------------------
 def load_alpha_content():
     try:
-        paths = ['words.json', 'Alpha_Male_Deep_Voice/words.json']
-        data = {}
-        for p in paths:
-            if os.path.exists(p):
-                with open(p, 'r') as f:
-                    data = json.load(f)
-                break
-
-        all_content = []
-        for cat in data:
-            all_content.extend([s for s in data[cat] if len(str(s).split()) > 3])
-
-        return all_content if all_content else ["Command the room with your resonance."]
+        with open("sentences.txt", "r", encoding="utf-8") as f:
+            return [x.strip() for x in f.readlines() if x.strip()]
     except:
         return ["Focus on diaphragm support."]
 
-# --- 2. SAVE PROGRESS ---
-def log_progress(score, target):
-    file_path = "alpha_progress.csv"
-    data = {"Date": [datetime.now().strftime("%Y-%m-%d %H:%M:%S")], "Alpha_Score": [score]}
-    df = pd.DataFrame(data)
-    df.to_csv(file_path, mode='a', header=not os.path.exists(file_path), index=False)
+all_sentences = load_alpha_content()
 
-# --- 3. SESSION STATE INIT ---
+# -------------------------
+# SESSION STATE INIT
+# -------------------------
 if "is_recording" not in st.session_state:
     st.session_state.is_recording = False
 
@@ -42,114 +30,105 @@ if "start_time" not in st.session_state:
 if "sentence_index" not in st.session_state:
     st.session_state.sentence_index = 0
 
-metrics = [
-    "v_deep","v_alpha","v_tone","v_clarity",
-    "v_accent","v_pitch","v_freq","v_chest",
-    "v_belly","v_res"
-]
+if "last_sentence_switch" not in st.session_state:
+    st.session_state.last_sentence_switch = 0
+
+metrics = ["v_deep","v_alpha","v_tone","v_clarity","v_accent","v_pitch","v_freq","v_chest","v_belly","v_res"]
 
 for m in metrics:
     if m not in st.session_state:
         st.session_state[m] = 0
 
-all_sentences = load_alpha_content()
-
-if "current_sentence" not in st.session_state:
-    st.session_state.current_sentence = all_sentences[0]
-
-# --- UI ---
+# -------------------------
+# UI
+# -------------------------
 st.title("⚡ Alpha Voice Mastery")
 
-# Sidebar
 with st.sidebar:
     st.header("🎯 Training Target")
-    target_goal = st.slider("Goal %", 50, 100, 85)
+    target_goal = st.slider("Goal %",50,100,85)
 
-    st.divider()
-
-    if os.path.exists("alpha_progress.csv"):
-        st.subheader("📈 History")
-        history_df = pd.read_csv("alpha_progress.csv")
-        st.line_chart(history_df.set_index("Date")["Alpha_Score"])
-
-# Controls
-c1, c2, c3 = st.columns([1,1,1])
+c1,c2,c3 = st.columns([1,1,1])
 
 with c1:
     session_mins = st.selectbox("⏳ Session Duration",[1,2,3,5],index=0)
 
 with c2:
-    st.write("")
     if not st.session_state.is_recording:
-        if st.button("🎤 START TRAINING", width='stretch', type="primary"):
+        if st.button("🎤 START TRAINING",type="primary",use_container_width=True):
             st.session_state.is_recording = True
             st.session_state.start_time = time.time()
+            st.session_state.last_sentence_switch = time.time()
             st.rerun()
     else:
-        if st.button("🛑 STOP SESSION", width='stretch'):
-            st.session_state.is_recording = False
+        if st.button("🛑 STOP SESSION",use_container_width=True):
+            st.session_state.is_recording=False
             st.rerun()
 
 with c3:
     if st.session_state.is_recording:
-        elapsed = time.time() - st.session_state.start_time
-        remaining = max(0,(session_mins*60)-elapsed)
+        elapsed=time.time()-st.session_state.start_time
+        remaining=max(0,(session_mins*60)-elapsed)
         st.metric("Time Remaining",f"{int(remaining)}s")
 
-        # ✅ MOVE TO NEXT SENTENCE ONLY WHEN SESSION ENDS
-        if remaining <= 0:
-            st.session_state.is_recording = False
-            st.session_state.sentence_index += 1
-            st.session_state.current_sentence = all_sentences[
-                st.session_state.sentence_index % len(all_sentences)
-            ]
-            st.rerun()
-
-st.divider()
-
-# --- MAIN TRAINING AREA ---
-col_left, col_right = st.columns([1.5,1])
+# -------------------------
+# MAIN AREA
+# -------------------------
+col_left,col_right = st.columns([1.5,1])
 
 with col_left:
-    box_color = "#2ecc71" if st.session_state.v_alpha >= target_goal else "#00BCFF"
+
+    # ---------- AUTO LOOP (KEY FIX) ----------
+    if st.session_state.is_recording:
+
+        now=time.time()
+
+        # change sentence every 5 sec
+        if now - st.session_state.last_sentence_switch > 5:
+            st.session_state.sentence_index +=1
+            st.session_state.last_sentence_switch = now
+
+        # analyze only every 5 sec
+        res = analyze_mic_input(duration=3)
+
+        # ignore fake silent values
+        if res["alpha"] > 0:
+            st.session_state.update({
+                "v_deep":res["sub100"],
+                "v_alpha":res["alpha"],
+                "v_tone":res["chest"],
+                "v_clarity":res["gravel"],
+                "v_accent":res["gravel"],
+                "v_pitch":res["sub100"],
+                "v_freq":res["sub100"],
+                "v_chest":res["chest"],
+                "v_belly":res["belly"],
+                "v_res":res["alpha"]
+            })
+
+        time.sleep(1)
+        st.rerun()
+
+    current_sentence = all_sentences[
+        st.session_state.sentence_index % len(all_sentences)
+    ]
+
+    box_color="#2ecc71" if st.session_state.v_alpha>=target_goal else "#00BCFF"
 
     st.markdown(f"""
-        <div style="background-color:#111; padding:60px;
-        border-radius:15px; border:4px solid {box_color};
-        min-height:280px; display:flex;
-        align-items:center; justify-content:center;">
-            <h1 style="color:white; text-align:center;
-            font-family:serif; line-height:1.4;">
-            "{st.session_state.current_sentence}"
-            </h1>
+        <div style="background:#111;padding:60px;border-radius:15px;border:4px solid {box_color};
+        min-height:280px;display:flex;align-items:center;justify-content:center;">
+        <h1 style="color:white;text-align:center;font-family:serif;">
+        "{current_sentence}"
+        </h1>
         </div>
     """,unsafe_allow_html=True)
 
-    # --- ANALYSIS (runs silently during session) ---
-    if st.session_state.is_recording:
-        with st.spinner("Analyzing Resonance..."):
-
-            res = analyze_mic_input(duration=5)
-
-            st.session_state.update({
-                "v_deep": res['sub100'],
-                "v_alpha": res['alpha'],
-                "v_tone": res['chest'],
-                "v_clarity": res['gravel'],
-                "v_accent": res['gravel'],
-                "v_pitch": res['sub100'],
-                "v_freq": res['sub100'],
-                "v_chest": res['chest'],
-                "v_belly": res['belly'],
-                "v_res": res['alpha']
-            })
-
-            if res['alpha'] >= target_goal:
-                log_progress(res['alpha'],target_goal)
-                st.balloons()
-
-# --- RIGHT SIDE METRICS ---
+# -------------------------
+# RIGHT SIDE METRICS
+# -------------------------
 with col_right:
+
     st.subheader("📊 Alpha Metrics")
 
     st.slider("Alpha Deep Voice",0,100,key="v_deep")
@@ -164,3 +143,4 @@ with col_right:
 
     st.markdown("---")
     st.write(f"### Current Resonance: {st.session_state.v_res}%")
+
