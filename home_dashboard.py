@@ -107,8 +107,16 @@ with col_left:
                 log_progress(res['alpha'], target_goal)
                 st.balloons()
             
-            st.session_state.current_sentence = random.choice(all_sentences)
-            st.rerun()
+            # Move sequentially instead of random fast change
+if "sentence_index" not in st.session_state:
+    st.session_state.sentence_index = 0
+
+st.session_state.sentence_index += 1
+st.session_state.current_sentence = all_sentences[
+    st.session_state.sentence_index % len(all_sentences)
+]
+
+st.rerun()
 
 with col_right:
     st.subheader("📊 Alpha Metrics")
