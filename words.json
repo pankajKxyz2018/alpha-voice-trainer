@@ -1,0 +1,49 @@
+{
+  "Level_1_Chest_Resonance": [
+    "MOON", "BONE", "DOOM", "GUM", "HOME", "NONE", "BOMB", "MOMENT", "OWNER", "ROAM",
+    "BOOM", "DOME", "LOOM", "MOAN", "NODE", "ZONE", "COMB", "HORMONE", "MONK", "TONE",
+    "DRUM", "GLOOM", "MOURN", "BOND", "BOLD", "COLD", "FOLD", "GOLD", "HOLD", "SOLD"
+  ],
+  "Level_2_Belly_Involvement": [
+    "GROUND", "BARREL", "POWER", "THUNDER", "GUTTER", "BOTTOM", "BATTLE", "DOUBT", "POUND", "ROUND",
+    "BLOOD", "BROTHER", "DOUBLE", "GRUMBLE", "BULL", "BEAR", "BOARD", "BUILD", "DANGER", "DRIVE",
+    "GATHER", "GOVERN", "GUARD", "GHOST", "BURST", "BANE", "BUSH", "BRAWL", "BRUTE", "BLAST"
+  ],
+  "Level_3_Gravel_Texture": [
+    "ROAR", "RUMBLE", "RAZOR", "RIVER", "ROUGH", "ROCK", "RAGE", "RUST", "RARE", "RHYTHM",
+    "GRAVEL", "GRIND", "GROWL", "GRIP", "GREY", "GRASS", "GRAVE", "GROAN", "GRIM", "GRATE",
+    "ERROR", "MIRROR", "HORROR", "ORDER", "WARRIOR", "RATHER", "HARDER", "FURTHER", "NEARER", "DARKER"
+  ],
+  "Level_4_Alpha_Mastery": [
+    "AUTHORITY", "DOMINANCE", "COMMAND", "GROUNDED", "RESONANCE", "VIBRATION", "POWERFUL", "ABSOLUTE", "KINGDOM", "EMPIRE"
+  ],
+  "Level_5_Sentences": [
+    "The thunder rolls across the dark valley.",
+    "My voice carries the weight of authority.",
+    "Breathe deep and speak from the diaphragm.",
+    "The resonance of the earth moves through me.",
+    "Command the room with every spoken word."
+  ],
+  "Level_6_Resonance_Drills": [
+    "The mountain stands firm beneath my voice.",
+    "Strength flows from my chest into sound.",
+    "I speak with the weight of stone.",
+    "My chest vibrates like a drum of thunder.",
+    "The power of my voice begins in my chest.",
+    "Breath rises from my belly with force.",
+    "The belly anchors the depth of my tone.",
+    "I push sound upward from the core.",
+    "My belly fuels the strength of my words.",
+    "The foundation of my voice lies in my belly.",
+    "The diaphragm releases steady waves of sound.",
+    "I control my breath with calm strength.",
+    "Each word rides the air from my diaphragm.",
+    "The diaphragm expands to carry my voice.",
+    "I breathe deep, and my diaphragm guides the tone.",
+    "My throat opens wide to let sound settle.",
+    "The base of my throat anchors my voice.",
+    "I speak from the depth of my throat.",
+    "The throat base resonates with calm power.",
+    "Sound rests low, steady, and strong."
+  ]
+}
