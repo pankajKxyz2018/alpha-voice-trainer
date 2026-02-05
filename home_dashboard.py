@@ -1,10 +1,8 @@
+from live_stream import start_live_stream
 import streamlit as st
 import json
 import time
 import os
-import pandas as pd
-from datetime import datetime
-from voice_engine import analyze_mic_input
 
 # --------------------------------------
 # PAGE TITLE
@@ -46,6 +44,9 @@ if "start_time" not in st.session_state:
 if "sentence_index" not in st.session_state:
     st.session_state.sentence_index = 0
 
+if "last_sentence_update" not in st.session_state:
+    st.session_state.last_sentence_update = 0
+
 if "current_sentence" not in st.session_state:
     st.session_state.current_sentence = "Press START TRAINING"
 
@@ -81,6 +82,7 @@ with c2:
             st.session_state.is_recording = True
             st.session_state.start_time = time.time()
             st.session_state.sentence_index = 0
+            st.session_state.last_sentence_update = time.time()
             st.session_state.current_sentence = all_sentences[0]
     else:
         if st.button("🛑 STOP SESSION", use_container_width=True):
@@ -120,30 +122,32 @@ with col_left:
     """, unsafe_allow_html=True)
 
     # --------------------------------------
-    # SAFE ANALYSIS LOOP (NO FREEZE)
+    # REAL STREAM ENGINE (NO FREEZE)
     # --------------------------------------
     if st.session_state.is_recording:
 
-        res = analyze_mic_input()
+        res = start_live_stream()
 
         st.session_state.update({
-            "v_deep": res['sub100'],
+            "v_deep": res['deep'],
             "v_alpha": res['alpha'],
-            "v_tone": res['chest'],
-            "v_clarity": res['gravel'],
-            "v_accent": res['gravel'],
-            "v_pitch": res['sub100'],
-            "v_freq": res['sub100'],
+            "v_tone": res['tone'],
+            "v_clarity": res['tone'],
+            "v_accent": res['tone'],
+            "v_pitch": res['deep'],
+            "v_freq": res['deep'],
             "v_chest": res['chest'],
             "v_belly": res['belly'],
             "v_res": res['alpha']
         })
 
-        # Move sentence slowly (every rerender, not every millisecond)
-        st.session_state.sentence_index += 1
-        st.session_state.current_sentence = all_sentences[
-            st.session_state.sentence_index % len(all_sentences)
-        ]
+        # CHANGE SENTENCE ONLY EVERY 4 SECONDS
+        if time.time() - st.session_state.last_sentence_update > 4:
+            st.session_state.sentence_index += 1
+            st.session_state.current_sentence = all_sentences[
+                st.session_state.sentence_index % len(all_sentences)
+            ]
+            st.session_state.last_sentence_update = time.time()
 
 # --------------------------------------
 # RIGHT SIDE SLIDERS
@@ -166,7 +170,7 @@ with col_right:
     st.write(f"### Current Resonance: {st.session_state.v_res}%")
 
 # --------------------------------------
-# 🏆 MILESTONE SYSTEM (HARD MODE)
+# 🏆 HARD MODE MILESTONES
 # --------------------------------------
 scores = [st.session_state[m] for m in metrics]
 min_score = min(scores)
