@@ -2,12 +2,11 @@ import streamlit as st
 import json
 import time
 import os
-import random
 import pandas as pd
 from datetime import datetime
 from voice_engine import analyze_mic_input
 
-# --- 1. DATA & HISTORY LOGGING ---
+# --- 1. LOAD SENTENCES ---
 def load_alpha_content():
     try:
         paths = ['words.json', 'Alpha_Male_Deep_Voice/words.json']
@@ -26,26 +25,27 @@ def load_alpha_content():
     except:
         return ["Focus on diaphragm support."]
 
+# --- 2. SAVE PROGRESS ---
 def log_progress(score, target):
     file_path = "alpha_progress.csv"
     data = {"Date": [datetime.now().strftime("%Y-%m-%d %H:%M:%S")], "Alpha_Score": [score]}
     df = pd.DataFrame(data)
     df.to_csv(file_path, mode='a', header=not os.path.exists(file_path), index=False)
 
-# --- 2. SESSION STATE ---
-if 'is_recording' not in st.session_state:
+# --- 3. SESSION STATE INIT ---
+if "is_recording" not in st.session_state:
     st.session_state.is_recording = False
 
-if 'start_time' not in st.session_state:
+if "start_time" not in st.session_state:
     st.session_state.start_time = 0
 
-if 'sentence_index' not in st.session_state:
+if "sentence_index" not in st.session_state:
     st.session_state.sentence_index = 0
 
 metrics = [
-    "v_deep", "v_alpha", "v_tone", "v_clarity",
-    "v_accent", "v_pitch", "v_freq", "v_chest",
-    "v_belly", "v_res"
+    "v_deep","v_alpha","v_tone","v_clarity",
+    "v_accent","v_pitch","v_freq","v_chest",
+    "v_belly","v_res"
 ]
 
 for m in metrics:
@@ -57,7 +57,7 @@ all_sentences = load_alpha_content()
 if "current_sentence" not in st.session_state:
     st.session_state.current_sentence = all_sentences[0]
 
-# --- 3. THE UI LAYOUT ---
+# --- UI ---
 st.title("⚡ Alpha Voice Mastery")
 
 # Sidebar
@@ -76,7 +76,7 @@ with st.sidebar:
 c1, c2, c3 = st.columns([1,1,1])
 
 with c1:
-    session_mins = st.selectbox("⏳ Session Duration", [1,2,3,5], index=0)
+    session_mins = st.selectbox("⏳ Session Duration",[1,2,3,5],index=0)
 
 with c2:
     st.write("")
@@ -93,11 +93,16 @@ with c2:
 with c3:
     if st.session_state.is_recording:
         elapsed = time.time() - st.session_state.start_time
-        remaining = max(0, (session_mins * 60) - elapsed)
-        st.metric("Time Remaining", f"{int(remaining)}s")
+        remaining = max(0,(session_mins*60)-elapsed)
+        st.metric("Time Remaining",f"{int(remaining)}s")
 
+        # ✅ MOVE TO NEXT SENTENCE ONLY WHEN SESSION ENDS
         if remaining <= 0:
             st.session_state.is_recording = False
+            st.session_state.sentence_index += 1
+            st.session_state.current_sentence = all_sentences[
+                st.session_state.sentence_index % len(all_sentences)
+            ]
             st.rerun()
 
 st.divider()
@@ -109,17 +114,18 @@ with col_left:
     box_color = "#2ecc71" if st.session_state.v_alpha >= target_goal else "#00BCFF"
 
     st.markdown(f"""
-        <div style="background-color:#111; padding:60px; border-radius:15px;
-        border: 4px solid {box_color}; min-height:280px; display:flex;
+        <div style="background-color:#111; padding:60px;
+        border-radius:15px; border:4px solid {box_color};
+        min-height:280px; display:flex;
         align-items:center; justify-content:center;">
             <h1 style="color:white; text-align:center;
             font-family:serif; line-height:1.4;">
             "{st.session_state.current_sentence}"
             </h1>
         </div>
-    """, unsafe_allow_html=True)
+    """,unsafe_allow_html=True)
 
-    # --- ANALYSIS BLOCK ---
+    # --- ANALYSIS (runs silently during session) ---
     if st.session_state.is_recording:
         with st.spinner("Analyzing Resonance..."):
 
@@ -139,30 +145,22 @@ with col_left:
             })
 
             if res['alpha'] >= target_goal:
-                log_progress(res['alpha'], target_goal)
+                log_progress(res['alpha'],target_goal)
                 st.balloons()
-
-            # ✅ Move sentence ONLY after analysis
-            st.session_state.sentence_index += 1
-            st.session_state.current_sentence = all_sentences[
-                st.session_state.sentence_index % len(all_sentences)
-            ]
-
-            st.rerun()
 
 # --- RIGHT SIDE METRICS ---
 with col_right:
     st.subheader("📊 Alpha Metrics")
 
-    st.slider("Alpha Deep Voice", 0, 100, key="v_deep")
-    st.slider("Alpha Depth (Overall)", 0, 100, key="v_alpha")
-    st.slider("Alpha Male Tone", 0, 100, key="v_tone")
-    st.slider("Alpha Clarity", 0, 100, key="v_clarity")
-    st.slider("Alpha Accent", 0, 100, key="v_accent")
-    st.slider("Alpha Pitch", 0, 100, key="v_pitch")
-    st.slider("Alpha Frequency", 0, 100, key="v_freq")
-    st.slider("Chest Power Usage", 0, 100, key="v_chest")
-    st.slider("Belly (Diaphragm) Usage", 0, 100, key="v_belly")
+    st.slider("Alpha Deep Voice",0,100,key="v_deep")
+    st.slider("Alpha Depth (Overall)",0,100,key="v_alpha")
+    st.slider("Alpha Male Tone",0,100,key="v_tone")
+    st.slider("Alpha Clarity",0,100,key="v_clarity")
+    st.slider("Alpha Accent",0,100,key="v_accent")
+    st.slider("Alpha Pitch",0,100,key="v_pitch")
+    st.slider("Alpha Frequency",0,100,key="v_freq")
+    st.slider("Chest Power Usage",0,100,key="v_chest")
+    st.slider("Belly (Diaphragm) Usage",0,100,key="v_belly")
 
     st.markdown("---")
     st.write(f"### Current Resonance: {st.session_state.v_res}%")
