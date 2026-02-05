@@ -1,6 +1,7 @@
 # ==========================================================
-# 🔥 PRO ULTRA ENGINE — ALPHA DEEP VOICE REAL STREAM ANALYSIS
-# Designed for Deep Bass / Chest Resonance Training
+# 🧠 ARJUN DAS RESONANCE AI V2
+# Ultra Deep Bass + Chest Vibration Detector
+# Real Browser Mic Streaming Engine
 # ==========================================================
 
 import numpy as np
@@ -9,26 +10,27 @@ import av
 
 
 # ----------------------------------------------------------
-# 🎤 PRO AUDIO PROCESSOR
+# 🎤 ULTRA PROCESSOR
 # ----------------------------------------------------------
-class AlphaUltraProcessor(AudioProcessorBase):
+class AlphaResonanceProcessor(AudioProcessorBase):
 
     def __init__(self):
         self.latest_result = None
+        self.prev_energy = 0
 
     def recv(self, frame: av.AudioFrame):
 
-        # Convert audio frame → numpy
         audio = frame.to_ndarray().flatten().astype(np.float32)
 
         # --------------------------------------------------
-        # 🛑 SILENCE GUARD (NO FAKE SCORES)
+        # 🛑 SILENCE GUARD (NO FAKE ANALYSIS)
         # --------------------------------------------------
-        if np.max(np.abs(audio)) < 0.015:
+        peak = np.max(np.abs(audio))
+        if peak < 0.02:
             return frame
 
         # --------------------------------------------------
-        # FFT ANALYSIS (REAL FREQUENCY BREAKDOWN)
+        # FFT ANALYSIS
         # --------------------------------------------------
         fft = np.abs(np.fft.rfft(audio))
         freqs = np.fft.rfftfreq(len(audio), 1 / 48000)
@@ -36,57 +38,70 @@ class AlphaUltraProcessor(AudioProcessorBase):
         total_energy = np.sum(fft) + 1e-10
 
         # --------------------------------------------------
-        # 🎯 ULTRA BASS ZONES (ARJUN DAS STYLE)
+        # 🎯 FREQUENCY ZONES (ARJUN DAS STYLE)
         # --------------------------------------------------
 
-        # SUB BASS (deep throat / vocal fry area)
+        # DEEP SUB BASS (throat depth)
         sub_zone = np.sum(fft[(freqs >= 50) & (freqs <= 95)])
 
-        # CHEST RESONANCE
+        # CHEST RESONANCE CORE
         chest_zone = np.sum(fft[(freqs >= 120) & (freqs <= 300)])
 
-        # BELLY / DIAPHRAGM SUPPORT
+        # BELLY SUPPORT / DIAPHRAGM FLOW
         belly_zone = np.sum(fft[(freqs >= 20) & (freqs <= 60)])
 
         # CLARITY / GRAVEL TEXTURE
         gravel_zone = np.sum(fft[(freqs >= 2500) & (freqs <= 5000)])
 
         # --------------------------------------------------
-        # 🔥 HARD MODE SCORING (STRICT)
+        # 🫀 CHEST VIBRATION DETECTOR (NEW)
         # --------------------------------------------------
-        sub100 = min(100, int((sub_zone / total_energy) * 2400))
-        chest  = min(100, int((chest_zone / total_energy) * 1600))
+        # Measures stability of low-frequency energy
+        low_energy = sub_zone + chest_zone
+        vibration_delta = abs(low_energy - self.prev_energy)
+        self.prev_energy = low_energy
+
+        # Stable vibration = deep masculine resonance
+        vibration_score = max(0, 100 - int(vibration_delta * 8000))
+        vibration_score = min(100, vibration_score)
+
+        # --------------------------------------------------
+        # 🔥 HARD MODE SCORING
+        # --------------------------------------------------
+        sub100 = min(100, int((sub_zone / total_energy) * 2500))
+        chest  = min(100, int((chest_zone / total_energy) * 1700))
         belly  = min(100, int((belly_zone / total_energy) * 4200))
         gravel = min(100, int((gravel_zone / total_energy) * 2600))
 
-        # ULTRA ALPHA SCORE (STRICT WEIGHTING)
+        # ULTRA ALPHA SCORE
         alpha = int(
-            (sub100 * 0.45) +   # deep bass is primary
-            (chest  * 0.35) +   # chest power important
-            (gravel * 0.20)     # texture secondary
+            (sub100 * 0.40) +
+            (chest  * 0.30) +
+            (vibration_score * 0.20) +
+            (gravel * 0.10)
         )
 
-        # Save latest result
         self.latest_result = {
             "sub100": sub100,
             "chest": chest,
             "belly": belly,
             "gravel": gravel,
-            "alpha": alpha
+            "alpha": alpha,
+            "vibration": vibration_score
         }
 
         return frame
 
 
 # ----------------------------------------------------------
-# 🚀 START LIVE STREAM FUNCTION
+# 🚀 START LIVE STREAM
 # ----------------------------------------------------------
 def start_live_stream():
 
     ctx = webrtc_streamer(
-        key="alpha-ultra-stream",
+        key="alpha-resonance-v2",
         mode=WebRtcMode.SENDRECV,
-        audio_processor_factory=AlphaUltraProcessor,
+        audio_processor_factory=AlphaResonanceProcessor,
         media_stream_constraints={"audio": True, "video": False},
     )
 
@@ -94,6 +109,7 @@ def start_live_stream():
         return ctx.audio_processor.latest_result
 
     return None
+
 
 
 
