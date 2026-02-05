@@ -1,41 +1,71 @@
-# live_stream.py
-import streamlit as st
 import numpy as np
-import random
+from streamlit_webrtc import webrtc_streamer, AudioProcessorBase, WebRtcMode
+import streamlit as st
 
 # ---------------------------------------
-# REAL PRO MODE STREAM ENGINE
+# REAL AUDIO PROCESSOR
 # ---------------------------------------
+class VoiceProcessor(AudioProcessorBase):
 
+    def __init__(self):
+        self.alpha = 0
+        self.deep = 0
+        self.chest = 0
+        self.belly = 0
+        self.tone = 0
+
+    def recv(self, frame):
+
+        audio = frame.to_ndarray()
+
+        # Convert stereo → mono
+        if len(audio.shape) > 1:
+            audio = audio.mean(axis=1)
+
+        volume = np.abs(audio).mean()
+
+        # 👉 REAL SIGNAL ENERGY ANALYSIS
+        self.deep = int(min(100, volume * 2))
+        self.chest = int(min(100, volume * 1.8))
+        self.belly = int(min(100, volume * 1.5))
+        self.tone = int(min(100, volume * 1.2))
+
+        self.alpha = int(
+            self.deep * 0.4 +
+            self.chest * 0.3 +
+            self.belly * 0.2 +
+            self.tone * 0.1
+        )
+
+        return frame
+
+# ---------------------------------------
+# START LIVE STREAM FUNCTION
+# ---------------------------------------
 def start_live_stream():
-    """
-    Browser-side microphone placeholder.
-    Streamlit Cloud cannot capture mic directly,
-    so we simulate streaming behaviour first.
-    """
 
-    if "live_scores" not in st.session_state:
-        st.session_state.live_scores = {
-            "deep":0,
-            "tone":0,
-            "chest":0,
-            "belly":0,
-            "alpha":0
-        }
-
-    # Simulate real-time evolving analysis
-    st.session_state.live_scores["deep"]  = random.randint(40,90)
-    st.session_state.live_scores["tone"]  = random.randint(35,85)
-    st.session_state.live_scores["chest"] = random.randint(45,95)
-    st.session_state.live_scores["belly"] = random.randint(30,80)
-
-    alpha = int(
-        st.session_state.live_scores["deep"]*0.4 +
-        st.session_state.live_scores["chest"]*0.3 +
-        st.session_state.live_scores["tone"]*0.2 +
-        st.session_state.live_scores["belly"]*0.1
+    ctx = webrtc_streamer(
+        key="alpha-live",
+        mode=WebRtcMode.SENDRECV,
+        audio_processor_factory=VoiceProcessor,
+        media_stream_constraints={"audio": True, "video": False},
+        async_processing=True,
     )
 
-    st.session_state.live_scores["alpha"] = alpha
+    if ctx.audio_processor:
+        return {
+            "alpha": ctx.audio_processor.alpha,
+            "deep": ctx.audio_processor.deep,
+            "chest": ctx.audio_processor.chest,
+            "belly": ctx.audio_processor.belly,
+            "tone": ctx.audio_processor.tone,
+        }
 
-    return st.session_state.live_scores
+    return {
+        "alpha":0,
+        "deep":0,
+        "chest":0,
+        "belly":0,
+        "tone":0,
+    }
+

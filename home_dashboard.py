@@ -1,17 +1,21 @@
-from live_stream import start_live_stream
+# ---------------------------------------
+# ⚡ ALPHA VOICE MASTERY – STABLE WEB VERSION
+# REAL-TIME READY (NON FREEZING ENGINE)
+# ---------------------------------------
+
 import streamlit as st
 import json
 import time
 import os
+import pandas as pd
+from datetime import datetime
+from voice_engine import analyze_mic_input
 
-# --------------------------------------
-# PAGE TITLE
-# --------------------------------------
-st.title("⚡ Alpha Voice Mastery")
+st.set_page_config(layout="wide")
 
-# --------------------------------------
+# ---------------------------------------
 # LOAD SENTENCES
-# --------------------------------------
+# ---------------------------------------
 def load_alpha_content():
     try:
         paths = ['words.json', 'Alpha_Male_Deep_Voice/words.json']
@@ -32,9 +36,9 @@ def load_alpha_content():
 
 all_sentences = load_alpha_content()
 
-# --------------------------------------
+# ---------------------------------------
 # SESSION STATE INIT
-# --------------------------------------
+# ---------------------------------------
 if "is_recording" not in st.session_state:
     st.session_state.is_recording = False
 
@@ -44,33 +48,35 @@ if "start_time" not in st.session_state:
 if "sentence_index" not in st.session_state:
     st.session_state.sentence_index = 0
 
-if "last_sentence_update" not in st.session_state:
-    st.session_state.last_sentence_update = 0
+if "last_sentence_change" not in st.session_state:
+    st.session_state.last_sentence_change = 0
 
 if "current_sentence" not in st.session_state:
     st.session_state.current_sentence = "Press START TRAINING"
 
-if "v_res" not in st.session_state:
-    st.session_state.v_res = 0
-
 metrics = [
     "v_deep","v_alpha","v_tone","v_clarity","v_accent",
-    "v_pitch","v_freq","v_chest","v_belly"
+    "v_pitch","v_freq","v_chest","v_belly","v_res"
 ]
 
 for m in metrics:
     if m not in st.session_state:
         st.session_state[m] = 0
 
-# --------------------------------------
+# ---------------------------------------
+# PAGE TITLE
+# ---------------------------------------
+st.title("⚡ Alpha Voice Mastery")
+
+# ---------------------------------------
 # SIDEBAR
-# --------------------------------------
+# ---------------------------------------
 with st.sidebar:
     target_goal = st.slider("🎯 Training Target",50,100,85)
 
-# --------------------------------------
+# ---------------------------------------
 # CONTROLS
-# --------------------------------------
+# ---------------------------------------
 c1, c2, c3 = st.columns([1,1,1])
 
 with c1:
@@ -82,7 +88,7 @@ with c2:
             st.session_state.is_recording = True
             st.session_state.start_time = time.time()
             st.session_state.sentence_index = 0
-            st.session_state.last_sentence_update = time.time()
+            st.session_state.last_sentence_change = time.time()
             st.session_state.current_sentence = all_sentences[0]
     else:
         if st.button("🛑 STOP SESSION", use_container_width=True):
@@ -99,14 +105,14 @@ with c3:
 
 st.divider()
 
-# --------------------------------------
+# ---------------------------------------
 # MAIN LAYOUT
-# --------------------------------------
+# ---------------------------------------
 col_left, col_right = st.columns([1.5,1])
 
-# --------------------------------------
+# ---------------------------------------
 # SENTENCE DISPLAY
-# --------------------------------------
+# ---------------------------------------
 with col_left:
 
     border_color = "#2ecc71" if st.session_state.v_res >= target_goal else "#00BCFF"
@@ -121,37 +127,40 @@ with col_left:
     </div>
     """, unsafe_allow_html=True)
 
-    # --------------------------------------
-    # REAL STREAM ENGINE (NO FREEZE)
-    # --------------------------------------
+    # ---------------------------------------
+    # SAFE ANALYSIS LOOP (NO FREEZE VERSION)
+    # ---------------------------------------
     if st.session_state.is_recording:
 
-        res = start_live_stream()
+        # 👉 ONLY RUN ANALYSIS EVERY 2 SECONDS
+        if time.time() - st.session_state.last_sentence_change > 2:
 
-        st.session_state.update({
-            "v_deep": res['deep'],
-            "v_alpha": res['alpha'],
-            "v_tone": res['tone'],
-            "v_clarity": res['tone'],
-            "v_accent": res['tone'],
-            "v_pitch": res['deep'],
-            "v_freq": res['deep'],
-            "v_chest": res['chest'],
-            "v_belly": res['belly'],
-            "v_res": res['alpha']
-        })
+            res = analyze_mic_input()
 
-        # CHANGE SENTENCE ONLY EVERY 4 SECONDS
-        if time.time() - st.session_state.last_sentence_update > 4:
+            st.session_state.update({
+                "v_deep": res['sub100'],
+                "v_alpha": res['alpha'],
+                "v_tone": res['chest'],
+                "v_clarity": res['gravel'],
+                "v_accent": res['gravel'],
+                "v_pitch": res['sub100'],
+                "v_freq": res['sub100'],
+                "v_chest": res['chest'],
+                "v_belly": res['belly'],
+                "v_res": res['alpha']
+            })
+
+            # CHANGE SENTENCE SLOWLY
             st.session_state.sentence_index += 1
             st.session_state.current_sentence = all_sentences[
                 st.session_state.sentence_index % len(all_sentences)
             ]
-            st.session_state.last_sentence_update = time.time()
 
-# --------------------------------------
+            st.session_state.last_sentence_change = time.time()
+
+# ---------------------------------------
 # RIGHT SIDE SLIDERS
-# --------------------------------------
+# ---------------------------------------
 with col_right:
 
     st.subheader("📊 Alpha Metrics")
@@ -169,10 +178,14 @@ with col_right:
     st.markdown("---")
     st.write(f"### Current Resonance: {st.session_state.v_res}%")
 
-# --------------------------------------
+# ---------------------------------------
 # 🏆 HARD MODE MILESTONES
-# --------------------------------------
-scores = [st.session_state[m] for m in metrics]
+# ---------------------------------------
+scores = [st.session_state[m] for m in [
+    "v_deep","v_alpha","v_tone","v_clarity",
+    "v_accent","v_pitch","v_freq","v_chest","v_belly"
+]]
+
 min_score = min(scores)
 
 st.markdown("---")
